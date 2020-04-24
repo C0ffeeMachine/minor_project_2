@@ -124,7 +124,7 @@ void TcpElastic::IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked
 {
   NS_LOG_FUNCTION (this << tcb << segmentsAcked);
 
-  if (tcb->m_cWnd <= tcb->m_ssThresh)
+  if (tcb->m_cWnd < tcb->m_ssThresh)
   {
     if (segmentsAcked >= 1)
     {
@@ -133,7 +133,7 @@ void TcpElastic::IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked
       segmentsAcked = segmentsAcked - 1;
     }
   }
-  if(tcb->m_cWnd > tcb->m_ssThresh)
+  if(tcb->m_cWnd >= tcb->m_ssThresh)
   {
     CongestionAvoidance (tcb, segmentsAcked);
   }
@@ -143,8 +143,8 @@ uint32_t TcpElastic::GetSsThresh (Ptr<const TcpSocketState> tcb,uint32_t bytesIn
 {
   NS_LOG_FUNCTION (this << tcb << bytesInFlight);
 
-  //m_maxRtt = Time:: Min();
-  //m_baseRtt = Time:: Max();
+  // m_maxRtt = Time:: Min();
+  // m_baseRtt = Time:: Max();
 
   uint32_t segCwnd = bytesInFlight / tcb->m_segmentSize;
 
@@ -164,15 +164,22 @@ void TcpElastic::PktsAcked (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,cons
     return;
   }
 
-  m_curRtt = rtt;
 
-  m_maxRtt = std::max (m_maxRtt, rtt);
-  NS_LOG_DEBUG ("Updated m_minRtt = " << m_maxRtt);
+  if(tcb->m_cWnd >= tcb->m_ssThresh)
+  {
+    m_curRtt = rtt;
 
-  m_baseRtt = std::min (m_baseRtt, rtt);
-  NS_LOG_DEBUG ("Updated m_baseRtt = " << m_baseRtt);
- 
+    m_maxRtt = std::max (m_maxRtt, rtt);
+    NS_LOG_DEBUG ("Updated m_minRtt = " << m_maxRtt);
 
+    m_baseRtt = std::min (m_baseRtt, rtt);
+    NS_LOG_DEBUG ("Updated m_baseRtt = " << m_baseRtt);
+  }
+  else{
+    m_curRtt = rtt;
+    m_maxRtt = Time:: Min();
+    m_baseRtt = Time:: Max();
+  }
 }
 
 }

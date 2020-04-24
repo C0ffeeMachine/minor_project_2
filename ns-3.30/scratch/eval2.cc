@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
 	std::string tracePath = "/NodeList/*/$ns3::Ipv4L3Protocol/Tx";
 	std::string animFile = "MinorProject.xml";  // Name of file for animation output
 
-	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpElastic"));
+	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpCubic"));
 
 	CommandLine cmd;
 	cmd.Parse(argc, argv);
@@ -153,15 +153,15 @@ int main(int argc, char *argv[]) {
   // Build Link.
   //
 	PointToPointHelper p2p;
-	p2p.SetDeviceAttribute("DataRate", StringValue("50Mbps"));
-	p2p.SetChannelAttribute("Delay", StringValue("10ms"));
+	p2p.SetDeviceAttribute("DataRate", StringValue("200Mbps"));
+	p2p.SetChannelAttribute("Delay", StringValue("20ms"));
 
 	PointToPointHelper bt1;
-	bt1.SetDeviceAttribute("DataRate", StringValue("20Mbps"));
-	bt1.SetChannelAttribute("Delay", StringValue("20ms"));
+	bt1.SetDeviceAttribute("DataRate", StringValue("1000Mbps"));
+	bt1.SetChannelAttribute("Delay", StringValue("10ms"));
 
 	PointToPointHelper bt2;
-	bt2.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
+	bt2.SetDeviceAttribute("DataRate", StringValue("800Mbps"));
 	bt2.SetChannelAttribute("Delay", StringValue("10ms"));
 
   //
@@ -324,7 +324,7 @@ int main(int argc, char *argv[]) {
 			socketLeft[i] = Socket::CreateSocket(leftnodes.Get(i), TcpSocketFactory::GetTypeId());
 
 			app[i] = CreateObject<MyApp>();
-			app[i]->Setup(socketLeft[i], sinkAddRight[i], 1040, 100000000, DataRate("100Mbps"));
+			app[i]->Setup(socketLeft[i], sinkAddRight[i], 1040, 100000, DataRate("100Mbps"));
 			leftnodes.Get(i)->AddApplication(app[i]);
 			app[i]->SetStartTime(Seconds(1));
 			app[i]->SetStopTime(Seconds(200.));
@@ -335,7 +335,7 @@ int main(int argc, char *argv[]) {
 			socketTop[i - ( nLN - 1 )] = Socket::CreateSocket(topnodes.Get(i - ( nLN - 1 )), TcpSocketFactory::GetTypeId());
 
 			app[i - ( nLN - 1 )] = CreateObject<MyApp>();
-			app[i - ( nLN - 1 )]->Setup(socketTop[i - ( nLN - 1 )], sinkAddRight[i], 1040, 100000000, DataRate("100Mbps"));
+			app[i - ( nLN - 1 )]->Setup(socketTop[i - ( nLN - 1 )], sinkAddRight[i], 1040, 100000, DataRate("100Mbps"));
 			topnodes.Get(i - ( nLN - 1 ))->AddApplication(app[i - ( nLN - 1 )]);
 			app[i - ( nLN - 1 )]->SetStartTime(Seconds(1));
 			app[i - ( nLN - 1 )]->SetStopTime(Seconds(200.));
@@ -358,7 +358,7 @@ int main(int argc, char *argv[]) {
 
   // Create UDP application at LN9
   Ptr<MyApp> app2 = CreateObject<MyApp> ();
-  app2->Setup (ns3UdpSocket, sinkAddress2, 1040, 100000000, DataRate ("100Mbps"));
+  app2->Setup (ns3UdpSocket, sinkAddress2, 1040, 100000, DataRate ("100Mbps"));
   leftnodes.Get (9)->AddApplication (app2);
   app2->SetStartTime (Seconds (9.));
   app2->SetStopTime (Seconds (100.));
@@ -376,7 +376,7 @@ int main(int argc, char *argv[]) {
 
   // Create UDP application at TN2
   Ptr<MyApp> app3 = CreateObject<MyApp> ();
-  app3->Setup (ns3UdpSocket1, sinkAddress3, 1040, 100000000, DataRate ("100Mbps"));
+  app3->Setup (ns3UdpSocket1, sinkAddress3, 1040, 100000, DataRate ("100Mbps"));
   topnodes.Get (2)->AddApplication (app3);
   app3->SetStartTime (Seconds (11.));
   app3->SetStopTime (Seconds (100.));
@@ -584,7 +584,7 @@ socketLeft[0]->TraceConnectWithoutContext("CongestionWindow", MakeBoundCallback(
 PcapHelper pcapHelper;
 //Ptr<PcapFileWrapper> file = pcapHelper.CreateFile("eval2.pcap", std::ios::out, PcapHelper::DLT_PPP);
 //NDC["5-r2"].Get(0)->TraceConnectWithoutContext("PhyRxDrop", MakeBoundCallback(&RxDrop, file));
-p2p.EnablePcapAll("eval");
+//p2p.EnablePcapAll("eval");
 
 GnuplotHelper plotHelper;
 
@@ -607,8 +607,32 @@ anim.EnableIpv4L3ProtocolCounters(Seconds(0), Seconds(200));
 //
 NS_LOG_INFO("Run Simulation.");
 
-Simulator::Stop(Seconds(200.0));
-Simulator::Run();
+// Simulator::Stop(Seconds(80.0));
+// Simulator::Run();
+double simTime = 100.0;
+
+ FlowMonitorHelper flowmon;
+  Ptr<FlowMonitor> monitor = flowmon.InstallAll ();
+
+
+  Simulator::Stop(Seconds(simTime));
+  Simulator::Run();
+
+
+  monitor->CheckForLostPackets ();
+  Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
+  FlowMonitor::FlowStatsContainer stats = monitor->GetFlowStats ();
+  for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i)
+    {
+      Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
+      std::cout << "Flow " << i->first << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+      std::cout << "  Tx Packets: " << i->second.txPackets << "\n";
+      std::cout << "  Tx Bytes:   " << i->second.txBytes << "\n";
+      std::cout << "  TxOffered:  " << i->second.txBytes * 8.0 / (simTime) / 1000 / 1000  << " Mbps\n";
+      std::cout << "  Rx Packets: " << i->second.rxPackets << "\n";
+      std::cout << "  Rx Bytes:   " << i->second.rxBytes << "\n";
+      std::cout << "  Throughput: " << i->second.rxBytes * 8.0 / (simTime) / 1000 / 1000  << " Mbps\n";
+    }
 //flowMonitor->SerializeToXmlFile("FlowMonitor.xml", true, true);
 std::cout << "Animation Trace file created:" << animFile.c_str() << std::endl;
 Simulator::Destroy();
