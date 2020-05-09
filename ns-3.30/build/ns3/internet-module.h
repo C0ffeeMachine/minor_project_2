@@ -90,6 +90,7 @@
 #include "tcp-congestion-ops.h"
 #include "tcp-cubic.h"
 #include "tcp-elastic.h"
+#include "tcp-elmod.h"
 #include "tcp-header.h"
 #include "tcp-highspeed.h"
 #include "tcp-htcp.h"

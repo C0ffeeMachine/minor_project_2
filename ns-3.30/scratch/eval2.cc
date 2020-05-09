@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
 	std::string tracePath = "/NodeList/*/$ns3::Ipv4L3Protocol/Tx";
 	std::string animFile = "MinorProject.xml";  // Name of file for animation output
 
-	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpCubic"));
+	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpElmod"));
 
 	CommandLine cmd;
 	cmd.Parse(argc, argv);
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
   //
 	PointToPointHelper p2p;
 	p2p.SetDeviceAttribute("DataRate", StringValue("200Mbps"));
-	p2p.SetChannelAttribute("Delay", StringValue("20ms"));
+	p2p.SetChannelAttribute("Delay", StringValue("10ms"));
 
 	PointToPointHelper bt1;
 	bt1.SetDeviceAttribute("DataRate", StringValue("1000Mbps"));
