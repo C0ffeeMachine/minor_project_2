@@ -1,3 +1,8 @@
+This was our second Minor Project on Computer Networks.We developed a new TCP
+Congestion control algorithm named "Elmod", and gave promising results upon testing 
+under different network condition like low-bandwidth and high BDP networks.
+
+
 This is ns-3-allinone.
 
 If you have downloaded this in tarball release format, this directory
